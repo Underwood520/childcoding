@@ -36,31 +36,7 @@ function CallPython(input: any): Promise<any> {
         });
     });
 }
-// >test1.getcode
-// function ShowHoverMessage(message: any, document: vscode.TextDocument, position: vscode.Position) {
-// 	console.log("ShowHoverMessage");
-//     const hoverProvider = vscode.languages.registerHoverProvider(
-//         { scheme: 'file', language: 'cpp' }, // 这里可以根据需要调整模式
-//         {
-//             provideHover(doc, pos) {
-//                 console.log("=======");
-//                 if (pos.line === position.line ) {
-//                     let markdownString = new vscode.MarkdownString(message.bug_info);
-//                     markdownString.isTrusted = true;
-//                     console.log("--position: ",position);
-//                     console.log("--bug_info: ", message.bug_info);
-//                     return new vscode.Hover(markdownString);
-//                 }
-//                 return undefined;
-//             }
-//         }
-//     );
 
-//     // Unregister hover provider after showing the message
-//     setTimeout(() => {
-//         hoverProvider.dispose();
-//     }, 7000);  // Dispose after 5 seconds, adjust as needed
-// }
 //>test1.getcode
 function ShowHoverMessage2(context: vscode.ExtensionContext,message: any, document: vscode.TextDocument, position: vscode.Position) {
     console.log("ShowHoverMessage");
@@ -89,8 +65,7 @@ function ShowHoverMessage2(context: vscode.ExtensionContext,message: any, docume
             vscode.commands.executeCommand('setContext', 'decorationVisible', true);
             context.subscriptions.push(disposable);
         }
-
-        
+      
         const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         statusBarItem.command = commandId;
         statusBarItem.text = '$(close) Close Hover';
@@ -98,6 +73,19 @@ function ShowHoverMessage2(context: vscode.ExtensionContext,message: any, docume
         statusBarItem.show();
 
         context.subscriptions.push(statusBarItem);
+
+        // 监听文本编辑器选择变化
+        const selectionChangeDisposable = vscode.window.onDidChangeTextEditorSelection((e) => {
+            if (e.textEditor === editor) {
+                const newPos = e.selections[0].active;
+                if (newPos.line === position.line) {
+                    decorationType.dispose();
+                    selectionChangeDisposable.dispose();
+                }
+            }
+        });
+
+        context.subscriptions.push(selectionChangeDisposable);
     }
 }
 
