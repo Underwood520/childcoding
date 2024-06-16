@@ -6,7 +6,7 @@ import { measureMemory } from 'vm';
 
 function CallPython(input: any): Promise<any> {
     return new Promise((resolve, reject) => {
-        const pythonProcess = child_process.spawn('py', ['J:\\24.06.13-Hercules\\middle.py']);
+        const pythonProcess = child_process.spawn('py', ['D:\\Workspace\\childcoding\\middle.py']);
         
         let output = '';
         let error = '';
@@ -36,63 +36,71 @@ function CallPython(input: any): Promise<any> {
         });
     });
 }
-
-function ShowHoverMessage(message: any, document: vscode.TextDocument, position: vscode.Position) {
-	console.log("ShowHoverMessage");
-
-    const hoverProvider = vscode.languages.registerHoverProvider({ pattern: document.uri.fsPath }, {
-        provideHover(document, position) {
-			let str=message['message'];
-            let markdownString = new vscode.MarkdownString(str);
-            markdownString.isTrusted = true;
-			console.log(str);
-            return new vscode.Hover(markdownString);
-			// return new vscode.Hover(str);
-        }
-    });
-
-    // Manually trigger a hover by creating a hover provider
-    vscode.commands.executeCommand('editor.action.showHover', {
-        position: position,
-        textEditor: vscode.window.activeTextEditor
-    });
-
-    // Unregister hover provider after showing the message
-    setTimeout(() => {
-        hoverProvider.dispose();
-    }, 5000);  // Dispose after 5 seconds, adjust as needed
-}
-
-// function ShowHoverMessage2(message: any, document: vscode.TextDocument, range: vscode.Range) {
-// 	console.log("ShowHoverMessage2");
-
-// 	return new vscode.Hover(message['message'],range);
-
-//     const hoverProvider = vscode.languages.registerHoverProvider({ pattern: document.uri.fsPath }, {
-//         provideHover(document, position) {
-// 			let str=message['message'];
-//             let markdownString = new vscode.MarkdownString(str);
-//             markdownString.isTrusted = true;
-// 			console.log(str);
-//             return new vscode.Hover(markdownString,range);
-// 			// return new vscode.Hover(str);
+// >test1.getcode
+// function ShowHoverMessage(message: any, document: vscode.TextDocument, position: vscode.Position) {
+// 	console.log("ShowHoverMessage");
+//     const hoverProvider = vscode.languages.registerHoverProvider(
+//         { scheme: 'file', language: 'cpp' }, // 这里可以根据需要调整模式
+//         {
+//             provideHover(doc, pos) {
+//                 console.log("=======");
+//                 if (pos.line === position.line ) {
+//                     let markdownString = new vscode.MarkdownString(message.bug_info);
+//                     markdownString.isTrusted = true;
+//                     console.log("--position: ",position);
+//                     console.log("--bug_info: ", message.bug_info);
+//                     return new vscode.Hover(markdownString);
+//                 }
+//                 return undefined;
+//             }
 //         }
-//     });
-
-//     // Manually trigger a hover by creating a hover provider
-//     vscode.commands.executeCommand('editor.action.showHover', {
-//         range: vscode.Range,
-//         textEditor: vscode.window.activeTextEditor
-//     });
+//     );
 
 //     // Unregister hover provider after showing the message
 //     setTimeout(() => {
 //         hoverProvider.dispose();
-//     }, 5000);  // Dispose after 5 seconds, adjust as needed
+//     }, 7000);  // Dispose after 5 seconds, adjust as needed
 // }
+//>test1.getcode
+function ShowHoverMessage2(context: vscode.ExtensionContext,message: any, document: vscode.TextDocument, position: vscode.Position) {
+    console.log("ShowHoverMessage");
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+    const decorationType = vscode.window.createTextEditorDecorationType({
+        after: {
+            contentText: ` ${message.bug_info}`,
+            backgroundColor: 'red',
+            border: '1px solid black',
+            margin: '0 0 0 20px',
+            width: 'auto'
+        }
+    });
+
+    const editor = vscode.window.activeTextEditor;
+    if (editor) {
+        const endPosition = new vscode.Position(position.line, document.lineAt(position.line).range.end.character);
+        const range = new vscode.Range(endPosition, endPosition);
+        editor.setDecorations(decorationType, [range]);
+
+        const commandId = 'extension.closeDecoration';
+        if (!vscode.commands.getCommands(true).then(commands => commands.includes(commandId))) {
+            const disposable = vscode.commands.registerCommand(commandId, () => {
+                decorationType.dispose();
+            });
+            vscode.commands.executeCommand('setContext', 'decorationVisible', true);
+            context.subscriptions.push(disposable);
+        }
+
+        
+        const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+        statusBarItem.command = commandId;
+        statusBarItem.text = '$(close) Close Hover';
+        statusBarItem.tooltip = 'Close the hover message';
+        statusBarItem.show();
+
+        context.subscriptions.push(statusBarItem);
+    }
+}
+
 export function activate(context: vscode.ExtensionContext) {
 	console.log('Congratulations, test1 is now active!');
 
@@ -102,6 +110,7 @@ export function activate(context: vscode.ExtensionContext) {
         const editor = vscode.window.activeTextEditor;
 
         if (editor) {
+            console.log("in editor");
             const document = editor.document;
 			const selection = editor.selection;
 			const position = selection.active;
@@ -117,12 +126,40 @@ export function activate(context: vscode.ExtensionContext) {
 			};	
 
             try {
-                const result = await CallPython(input);
+                // const result = await CallPython(input);
+                console.log("source code: ",input);
+
+                const result = 
+                [
+                    {
+                      "bug_id": "1",
+                      "bug_row": "1",
+                      "bug_info": "Null pointer exception may occur if the object is not instantiated."
+                    },
+                    {
+                      "bug_id": "2",
+                      "bug_row": "3",
+                      "bug_info": "Possible array index out of bounds exception due to unchecked array access."
+                    },
+                    {
+                      "bug_id": "3",
+                      "bug_row": "5",
+                      "bug_info": "Potential memory leak due to unclosed resource."
+                    },
+                    {
+                      "bug_id": "4",
+                      "bug_row": "7",
+                      "bug_info": "Division by zero error if denominator is not validated."
+                    }
+                ];
                 vscode.window.showInformationMessage(`Output: ${JSON.stringify(result)}`);
-				
-				ShowHoverMessage(result, document,position);
-				// ShowHoverMessage2(result,document,new vscode.Range(new vscode.Position(1, 0),new vscode.Position(5,0)));
-				// ShowHoverMessage(result, document, new vscode.Position(1,1));
+
+                for (const bug of result) {
+                    const row = parseInt(bug.bug_row, 10) - 1; // 行号从0开始
+                    const pos = new vscode.Position(row, document.lineAt(row).range.end.character);
+                    ShowHoverMessage2(context, bug, document, pos);
+                }
+
             } catch (error) {
                 vscode.window.showErrorMessage(`Error: ${(error as Error).message}`);
             }
